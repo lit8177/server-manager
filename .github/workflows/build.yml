@@ -22,7 +22,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
           
+      # 清理可能损坏的 node_modules 缓存
+      - name: Clean npm cache
+        run: npm cache clean --force
+        
       # Windows: 配置环境避免 node-gyp 编译
       - name: Configure Windows Build Environment
         if: matrix.os == 'windows-latest'
@@ -39,8 +44,19 @@ jobs:
         with:
           python-version: '3.11'
           
+      # 删除可能存在的损坏文件
+      - name: Remove lock files (macOS/Linux)
+        if: matrix.os != 'windows-latest'
+        run: rm -f package-lock.json
+        
+      - name: Remove lock files (Windows)
+        if: matrix.os == 'windows-latest'
+        run: if exist package-lock.json del package-lock.json
+        shell: cmd
+        
+      # 使用 --force 确保 optional dependencies 正确安装
       - name: Install dependencies
-        run: npm install --prefer-offline --no-audit --legacy-peer-deps
+        run: npm install --force --legacy-peer-deps
         env:
           npm_config_build_from_source: false
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
