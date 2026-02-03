@@ -10,7 +10,6 @@
     "dev": "concurrently \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "tsc && vite build && tsc -p tsconfig.node.json",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "postinstall": "electron-builder install-app-deps",
     "preview": "vite preview",
     "electron:start": "electron .",
     "electron:build": "npm run build && electron-builder",
@@ -46,7 +45,8 @@
         "nsis",
         "portable"
       ],
-      "sign": null
+      "sign": null,
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": [
