@@ -23,21 +23,56 @@ jobs:
         with:
           node-version: 18
           
+      # Windows: 安装构建工具
+      - name: Install Windows Build Tools
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm install --global node-gyp
+        
+      # macOS: 安装 Python 3
+      - name: Setup Python (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
       - name: Install dependencies
         run: npm install
+        env:
+          # 跳过可选依赖以避免构建问题
+          npm_config_build_from_source: true
         
-      - name: Build for Linux
+      - name: Build application
+        run: npm run build
+        
+      - name: Verify build output
+        run: |
+          ls -la dist/ || dir dist\
+          ls -la dist-electron/ || dir dist-electron\
+        shell: bash
+        
+      # Linux 打包
+      - name: Package for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: npm run electron:build
+        run: npx electron-builder --linux --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Build for Windows
+      # Windows 打包
+      - name: Package for Windows
         if: matrix.os == 'windows-latest'
-        run: npm run electron:build:win
+        run: npx electron-builder --win --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Build for macOS
+      # macOS 打包
+      - name: Package for macOS
         if: matrix.os == 'macos-latest'
-        run: npm run electron:build:mac
+        run: npx electron-builder --mac --x64 --arm64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
+      # 上传 Linux 构建结果
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
@@ -46,14 +81,18 @@ jobs:
           path: |
             release/*.AppImage
             release/*.deb
+          if-no-files-found: error
             
+      # 上传 Windows 构建结果
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: release/*.exe
+          if-no-files-found: error
             
+      # 上传 macOS 构建结果
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
@@ -62,3 +101,4 @@ jobs:
           path: |
             release/*.dmg
             release/*.zip
+          if-no-files-found: error

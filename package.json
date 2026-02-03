@@ -2,7 +2,6 @@
   "name": "server-manager",
   "version": "1.0.0",
   "description": "A desktop application for discovering and managing server IP configurations",
-  "type": "module",
   "main": "dist-electron/main.js",
   "author": "Server Manager Team <team@servermanager.com>",
   "homepage": "https://github.com/servermanager/app",
@@ -10,6 +9,8 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
     "build": "tsc && vite build && tsc -p tsconfig.node.json",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-builder install-app-deps",
     "preview": "vite preview",
     "electron:start": "electron .",
     "electron:build": "npm run build && electron-builder",
@@ -24,14 +25,21 @@
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
     ],
     "mac": {
       "category": "public.app-category.utilities",
-      "target": [
-        "dmg",
-        "zip"
-      ]
+      "target": {
+        "target": "default",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
     },
     "win": {
       "target": [
@@ -48,6 +56,7 @@
     }
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.6",
     "@types/react": "^18.3.18",
