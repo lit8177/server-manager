@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "target": "ES2020",
+    "outDir": "dist-electron",
+    "rootDir": "electron",
+    "resolveJsonModule": true
+  },
+  "include": ["electron/**/*"]
+}

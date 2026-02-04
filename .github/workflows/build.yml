@@ -1,0 +1,138 @@
+name: Build All Platforms
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      # 清理可能损坏的 node_modules 缓存
+      - name: Clean npm cache
+        run: npm cache clean --force
+        
+      # Windows: 配置环境避免 node-gyp 编译
+      - name: Configure Windows Build Environment
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "ELECTRON_SKIP_BINARY_DOWNLOAD=1" >> $GITHUB_ENV
+          echo "npm_config_build_from_source=false" >> $GITHUB_ENV
+          echo "npm_config_node_gyp=false" >> $GITHUB_ENV
+        shell: bash
+        
+      # macOS: 安装 Python 3
+      - name: Setup Python (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      # 删除可能存在的损坏文件
+      - name: Remove lock files (macOS/Linux)
+        if: matrix.os != 'windows-latest'
+        run: rm -f package-lock.json
+        
+      - name: Remove lock files (Windows)
+        if: matrix.os == 'windows-latest'
+        run: if exist package-lock.json del package-lock.json
+        shell: cmd
+        
+      # 使用 --force 确保 optional dependencies 正确安装
+      - name: Install dependencies
+        run: npm install --force --legacy-peer-deps
+        env:
+          npm_config_build_from_source: false
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+        
+      # 重要：先构建应用代码
+      - name: Build application code
+        run: npm run build
+        
+      # 验证构建输出（重要调试步骤）
+      - name: Verify build output
+        run: |
+          echo "=== Checking dist directory ==="
+          ls -la dist/ || dir dist\
+          echo ""
+          echo "=== Checking dist-electron directory ==="
+          ls -la dist-electron/ || dir dist-electron\
+          echo ""
+          echo "=== Checking dist-electron/main.js ==="
+          if [ -f "dist-electron/main.js" ]; then
+            echo "✅ main.js exists"
+            head -n 5 dist-electron/main.js
+          else
+            echo "❌ main.js NOT FOUND"
+            exit 1
+          fi
+        shell: bash
+        
+      # Linux 打包 - 不再运行 npm run build
+      - name: Package for Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: npx electron-builder --linux --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      # Windows 打包 - 使用 electron-builder 的预构建二进制
+      - name: Package for Windows
+        if: matrix.os == 'windows-latest'
+        run: npx electron-builder --win --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_build_from_source: false
+        
+      # macOS 打包 - 不再运行 npm run build
+      - name: Package for macOS
+        if: matrix.os == 'macos-latest'
+        run: npx electron-builder --mac --x64 --arm64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      # 上传 Linux 构建结果
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+            
+      # 上传 Windows 构建结果
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: release/*.exe
+          if-no-files-found: error
+            
+      # 上传 macOS 构建结果
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error
