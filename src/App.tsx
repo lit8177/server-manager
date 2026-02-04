@@ -1,3 +1,12 @@
+import { DeviceDiscovery } from '@/components/device-discovery/DeviceDiscovery';
+
+function App() {
+  return <DeviceDiscovery />;
+}
+
+export default App;
+
+/* Original App - Commented out
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Header } from '@/components/Header';
@@ -7,7 +16,7 @@ import { ServerCard } from '@/components/ServerCard';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import { Server } from '@/types/server';
 
-function App() {
+function OriginalApp() {
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -221,5 +230,4 @@ function App() {
     </ThemeProvider>
   );
 }
-
-export default App;
+*/
